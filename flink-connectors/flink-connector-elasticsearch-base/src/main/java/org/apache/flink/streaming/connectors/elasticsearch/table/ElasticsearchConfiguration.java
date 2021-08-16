@@ -29,6 +29,7 @@ import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.util.InstantiationUtil;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -139,6 +140,14 @@ class ElasticsearchConfiguration {
 
     public String getIndex() {
         return config.get(ElasticsearchOptions.INDEX_OPTION);
+    }
+
+    public List<String> getRouting() {
+        return config.get(ElasticsearchOptions.ROUTING_OPTION);
+    }
+
+    public String getRoutingDelimiter() {
+        return config.get(ElasticsearchOptions.ROUTING_DELIMITER_OPTION);
     }
 
     public String getKeyDelimiter() {

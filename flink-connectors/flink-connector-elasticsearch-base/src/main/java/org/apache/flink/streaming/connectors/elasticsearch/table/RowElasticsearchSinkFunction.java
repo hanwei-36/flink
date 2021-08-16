@@ -50,6 +50,7 @@ class RowElasticsearchSinkFunction implements ElasticsearchSinkFunction<RowData>
     private final XContentType contentType;
     private final RequestFactory requestFactory;
     private final Function<RowData, String> createKey;
+    private final Function<RowData, String> createRouting;
 
     public RowElasticsearchSinkFunction(
             IndexGenerator indexGenerator,
@@ -57,13 +58,15 @@ class RowElasticsearchSinkFunction implements ElasticsearchSinkFunction<RowData>
             SerializationSchema<RowData> serializationSchema,
             XContentType contentType,
             RequestFactory requestFactory,
-            Function<RowData, String> createKey) {
+            Function<RowData, String> createKey,
+            Function<RowData, String> createRouting) {
         this.indexGenerator = Preconditions.checkNotNull(indexGenerator);
         this.docType = docType;
         this.serializationSchema = Preconditions.checkNotNull(serializationSchema);
         this.contentType = Preconditions.checkNotNull(contentType);
         this.requestFactory = Preconditions.checkNotNull(requestFactory);
         this.createKey = Preconditions.checkNotNull(createKey);
+        this.createRouting = Preconditions.checkNotNull(createRouting);
     }
 
     @Override
@@ -90,23 +93,34 @@ class RowElasticsearchSinkFunction implements ElasticsearchSinkFunction<RowData>
     private void processUpsert(RowData row, RequestIndexer indexer) {
         final byte[] document = serializationSchema.serialize(row);
         final String key = createKey.apply(row);
+        String routing = createRouting.apply(row);
         if (key != null) {
             final UpdateRequest updateRequest =
                     requestFactory.createUpdateRequest(
                             indexGenerator.generate(row), docType, key, contentType, document);
+            if (routing != null) {
+                updateRequest.routing(routing);
+            }
             indexer.add(updateRequest);
         } else {
             final IndexRequest indexRequest =
                     requestFactory.createIndexRequest(
                             indexGenerator.generate(row), docType, key, contentType, document);
+            if (routing != null) {
+                indexRequest.routing(routing);
+            }
             indexer.add(indexRequest);
         }
     }
 
     private void processDelete(RowData row, RequestIndexer indexer) {
         final String key = createKey.apply(row);
+        String routing = createRouting.apply(row);
         final DeleteRequest deleteRequest =
                 requestFactory.createDeleteRequest(indexGenerator.generate(row), docType, key);
+        if (routing != null) {
+            deleteRequest.routing(routing);
+        }
         indexer.add(deleteRequest);
     }
 

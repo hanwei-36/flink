@@ -75,6 +75,18 @@ public class ElasticsearchOptions {
                     .defaultValue("_")
                     .withDescription(
                             "Delimiter for composite keys e.g., \"$\" would result in IDs \"KEY1$KEY2$KEY3\".");
+    public static final ConfigOption<List<String>> ROUTING_OPTION =
+            ConfigOptions.key("routing")
+                    .stringType()
+                    .asList()
+                    .noDefaultValue()
+                    .withDescription("document routing columns");
+    public static final ConfigOption<String> ROUTING_DELIMITER_OPTION =
+            ConfigOptions.key("document-id.routing-delimiter")
+                    .stringType()
+                    .defaultValue("_")
+                    .withDescription(
+                            "Delimiter for composite routing e.g., \"$\" would result in routings \"$routing1$routing2$routing3\".");
     public static final ConfigOption<String> FAILURE_HANDLER_OPTION =
             ConfigOptions.key("failure-handler")
                     .stringType()
