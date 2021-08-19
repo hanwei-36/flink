@@ -82,7 +82,7 @@ public class ElasticsearchOptions {
                     .noDefaultValue()
                     .withDescription("document routing columns");
     public static final ConfigOption<String> ROUTING_DELIMITER_OPTION =
-            ConfigOptions.key("document-id.routing-delimiter")
+            ConfigOptions.key("routing-delimiter")
                     .stringType()
                     .defaultValue("_")
                     .withDescription(
