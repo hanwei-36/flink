@@ -61,6 +61,8 @@ import java.util.regex.Pattern;
 @Internal
 final class IndexGeneratorFactory {
 
+    private static final Pattern PATTERN = Pattern.compile("^([1]{0,1})+([0-9]{1})$");
+
     private IndexGeneratorFactory() {}
 
     public static IndexGenerator createIndexGenerator(String index, TableSchema schema) {
@@ -98,25 +100,40 @@ final class IndexGeneratorFactory {
                 RowData.createFieldGetter(indexFieldType, indexFieldPos);
 
         if (isDynamicIndexWithFormat) {
-            final String dateTimeFormat =
-                    indexHelper.extractDateFormat(index, indexFieldLogicalTypeRoot);
-            DynamicFormatter formatFunction =
-                    createFormatFunction(indexFieldType, indexFieldLogicalTypeRoot);
-
-            return new AbstractTimeIndexGenerator(index, dateTimeFormat) {
-                @Override
-                public String generate(RowData row) {
-                    Object fieldOrNull = fieldGetter.getFieldOrNull(row);
-                    final String formattedField;
-                    // TODO we can possibly optimize it to use the nullability of the field
-                    if (fieldOrNull != null) {
-                        formattedField = formatFunction.format(fieldOrNull, dateTimeFormatter);
-                    } else {
-                        formattedField = "null";
+            final String format = indexHelper.extractDateFormat(index, indexFieldLogicalTypeRoot);
+            Matcher matcher = PATTERN.matcher(format);
+            if (matcher.matches()) {
+                int subLength = Integer.parseInt(format);
+                return new IndexGeneratorBase(index) {
+                    @Override
+                    public String generate(RowData row) {
+                        Object indexField = fieldGetter.getFieldOrNull(row);
+                        return indexPrefix
+                                .concat(
+                                        indexField == null
+                                                ? "null"
+                                                : indexField.toString().substring(0, subLength))
+                                .concat(indexSuffix);
                     }
-                    return indexPrefix.concat(formattedField).concat(indexSuffix);
-                }
-            };
+                };
+            } else {
+                DynamicFormatter formatFunction =
+                        createFormatFunction(indexFieldType, indexFieldLogicalTypeRoot);
+                return new AbstractTimeIndexGenerator(index, format) {
+                    @Override
+                    public String generate(RowData row) {
+                        Object fieldOrNull = fieldGetter.getFieldOrNull(row);
+                        final String formattedField;
+                        // TODO we can possibly optimize it to use the nullability of the field
+                        if (fieldOrNull != null) {
+                            formattedField = formatFunction.format(fieldOrNull, dateTimeFormatter);
+                        } else {
+                            formattedField = "null";
+                        }
+                        return indexPrefix.concat(formattedField).concat(indexSuffix);
+                    }
+                };
+            }
         }
         // general dynamic index pattern
         return new IndexGeneratorBase(index) {
@@ -160,7 +177,7 @@ final class IndexGeneratorFactory {
                 throw new TableException(
                         String.format(
                                 "Unsupported type '%s' found in Elasticsearch dynamic index field, "
-                                        + "time-related pattern only support types are: DATE,TIME,TIMESTAMP.",
+                                        + "time-related pattern only support types are: DATE,TIME,TIMESTAMP or number not lager than 20.",
                                 indexFieldType));
         }
     }
