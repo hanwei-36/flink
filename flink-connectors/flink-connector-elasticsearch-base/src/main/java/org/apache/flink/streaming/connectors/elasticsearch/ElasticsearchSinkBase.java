@@ -397,6 +397,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
         callBridge.configureBulkProcessorBackoff(
                 bulkProcessorBuilder, bulkProcessorFlushBackoffPolicy);
 
+
         return bulkProcessorBuilder.build();
     }
 
@@ -449,6 +450,11 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
                 try {
                     for (int i = 0; i < response.getItems().length; i++) {
                         itemResponse = response.getItems()[i];
+                        if(itemResponse.isFailed()){
+                            System.out.println("---------" + itemResponse.getResponse());
+                        }else{
+                            System.out.println("+++++++++" + itemResponse.getResponse());
+                        }
                         failure = callBridge.extractFailureCauseFromBulkItemResponse(itemResponse);
                         if (failure != null) {
                             restStatus = itemResponse.getFailure().getStatus();

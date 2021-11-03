@@ -101,6 +101,7 @@ class RowElasticsearchSinkFunction implements ElasticsearchSinkFunction<RowData>
             if (routing != null) {
                 updateRequest.routing(routing);
             }
+            updateRequest.retryOnConflict(5);
             indexer.add(updateRequest);
         } else {
             final IndexRequest indexRequest =
